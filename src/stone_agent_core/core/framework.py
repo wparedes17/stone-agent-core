@@ -22,14 +22,6 @@ class ModularAgentFramework(Generic[StateT]):
     def graph(self) -> StateGraph:
         return self._graph
     
-    def register_module(self, module: type[StateT]):
-        """Register a migration module"""
-
-        module.log_loading()
-
-        self.modules[module.module_name] = module
-        self._update_execution_order()
-
     def _update_execution_order(self):
         """Update execution order based on dependencies"""
 
@@ -40,11 +32,33 @@ class ModularAgentFramework(Generic[StateT]):
             ready = []
             for module_name in remaining:
                 module = self.modules[module_name]
-                if all(dep in ordered for dep in module.dependencies):
+                
+                # Check if all dependencies exist and are already ordered
+                deps_satisfied = True
+                for dep in module.dependencies:
+                    if dep not in self.modules:
+                        raise ValueError(f"Module '{module_name}' depends on unknown module '{dep}'")
+                    if dep not in ordered:
+                        deps_satisfied = False
+                        break
+                
+                if deps_satisfied:
                     ready.append(module_name)
 
             if not ready:
-                raise ValueError("Circular dependency detected in modules")
+                # Find the circular dependency for better error reporting
+                remaining_modules = list(remaining)
+                circular_deps = []
+                for module_name in remaining_modules:
+                    module = self.modules[module_name]
+                    for dep in module.dependencies:
+                        if dep in remaining and dep != module_name:
+                            circular_deps.append(f"{module_name} -> {dep}")
+                
+                if circular_deps:
+                    raise ValueError(f"Circular dependency detected in modules: {', '.join(circular_deps)}")
+                else:
+                    raise ValueError("Circular dependency detected in modules")
 
             # Add ready modules to order
             for module_name in ready:
@@ -53,8 +67,25 @@ class ModularAgentFramework(Generic[StateT]):
 
         self.execution_order = ordered
 
+    def register_module(self, module: type[StateT]):
+        """Register a migration module"""
+
+        module.log_loading()
+
+        self.modules[module.module_name] = module
+        # Only validate dependencies when building execution order, not during registration
+        try:
+            self._update_execution_order()
+        except ValueError:
+            # If dependency resolution fails, keep the module but clear execution order
+            # Dependencies might be registered later
+            pass
+
     def create_main_graph(self):
         """Create a single, flat migration graph with all module nodes."""
+
+        # Validate and update execution order before creating graph
+        self._update_execution_order()
 
         main_graph = StateGraph(self.state_class)
 

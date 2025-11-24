@@ -59,10 +59,12 @@ class ToolLLMExample:
     def detect_available_providers(self) -> List[str]:
         """Check which LLM providers have API keys available"""
         providers = []
-        if os.getenv("OPENAI_API_KEY"):
-            providers.append("openai")
-        if os.getenv("ANTHROPIC_API_KEY"):
-            providers.append("anthropic")
+        supported_providers = ["openai", "anthropic", "cohere", "google", "azure"]
+        
+        for provider in supported_providers:
+            if os.getenv(f"{provider.upper()}_API_KEY"):
+                providers.append(provider)
+        
         return providers
     
     def process_tool_calls(self, tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -105,10 +107,9 @@ class ToolLLMExample:
         print(f"{'='*50}")
         
         try:
-            # Create the LLM client
+            # Create the LLM client (LiteLLM will handle API key detection)
             client = LLMClientFactory.create(
                 provider=provider,
-                api_key=os.getenv(f"{provider.upper()}_API_KEY"),
                 model=model
             )
             
@@ -164,13 +165,14 @@ class ToolLLMExample:
                     })
                 
                 # Get the final response with tool results
-                final_response = client.generate(
+                final_response = client.generate_with_tools(
                     system_prompt=system_prompt,
-                    messages=messages
+                    messages=messages,
+                    tools=TOOLS
                 )
                 
                 print("\n🤖 Final response:")
-                print(final_response[0])
+                print(final_response.get('content', 'No content in response'))
             else:
                 print("\n🤖 Response:")
                 print(response.get('content', 'No content in response'))
@@ -185,13 +187,13 @@ class ToolLLMExample:
     def run_all_examples(self):
         """Run examples for all available providers"""
         if not self.available_providers:
-            print("No API keys found. Please set OPENAI_API_KEY or ANTHROPIC_API_KEY in your environment.")
+            print("No API keys found. Please copy .env.example to .env and fill in your API keys.")
+            print("Supported providers: OpenAI, Anthropic, Cohere, Google, Azure")
             return
         
         # Models to use for each provider
         provider_models = {
-            "openai": "gpt-4o",
-            "anthropic": "claude-3-opus-20240229"
+            "anthropic": "claude-sonnet-4-20250514",
         }
         
         for provider in self.available_providers:

@@ -1,4 +1,4 @@
-name: stone_agent_core
+name: agents
 channels:
   - conda-forge
   - defaults
@@ -13,3 +13,7 @@ dependencies:
       - openai
       - anthropic
       - python-dotenv
+      - jupyter
+      - langgraph
+      - langchain-core
+      - pika
