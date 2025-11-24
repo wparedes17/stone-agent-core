@@ -1,0 +1,15 @@
+name: stone_agent_core
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - langgraph
+      - pytest
+      - matplotlib
+      - networkx
+      - openai
+      - anthropic
+      - python-dotenv
