@@ -6,10 +6,13 @@ from stone_agent_core.llm.llm_base import BaseLLMClient
 class LiteLLMClient(BaseLLMClient):
     """LiteLLM implementation supporting multiple providers"""
     
-    def __init__(self, provider: str = "openai", api_key: str = None, model: str = None, **kwargs):
+    def __init__(self, provider: str = "openai", api_key: str = None, model: str = None, 
+                 max_tokens: int = 2048, temperature: float = 0.1, **kwargs):
         self.provider = provider.lower()
         self.model = model or self._get_default_model()
         self.api_key = api_key or self._get_api_key()
+        self.default_max_tokens = max_tokens
+        self.default_temperature = temperature
         
         # Validate API key
         if not self.api_key:
@@ -94,8 +97,8 @@ class LiteLLMClient(BaseLLMClient):
             create_params = {
                 "model": model_name,
                 "messages": formatted_messages,
-                "max_tokens": kwargs.get('max_tokens', 2048),
-                "temperature": kwargs.get('temperature', 0.1),
+                "max_tokens": kwargs.get('max_tokens', self.default_max_tokens),
+                "temperature": kwargs.get('temperature', self.default_temperature),
             }
             
             if tools:
@@ -128,8 +131,8 @@ class LiteLLMClient(BaseLLMClient):
             create_params = {
                 "model": model_name,
                 "messages": formatted_messages,
-                "max_tokens": kwargs.get('max_tokens', 4096),
-                "temperature": kwargs.get('temperature', 0.1),
+                "max_tokens": kwargs.get('max_tokens', self.default_max_tokens),
+                "temperature": kwargs.get('temperature', self.default_temperature),
                 "stream": True
             }
             
@@ -176,8 +179,8 @@ class LiteLLMClient(BaseLLMClient):
                 model=model_name,
                 messages=formatted_messages,
                 tools=litellm_tools,
-                max_tokens=kwargs.get('max_tokens', 4096),
-                temperature=kwargs.get('temperature', 0.1)
+                max_tokens=kwargs.get('max_tokens', self.default_max_tokens),
+                temperature=kwargs.get('temperature', self.default_temperature)
             )
 
             message = response.choices[0].message
