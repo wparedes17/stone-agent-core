@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "stone_agent_core"
-version = "0.1.0"
+version = "0.1.2"
 description = "A modular agent framework for building AI applications"
 authors = [
     {name = "Wilfrido Jacobo Paredes", email = "wilfridojpg@yahoo.com"}
