@@ -1,5 +1,5 @@
 from langgraph.graph import StateGraph, END
-from typing import Dict, List, Generic, TypeVar, Optional
+from typing import Dict, List, Generic, TypeVar, Optional, Any
 
 # Core state that all subgraphs share
 from .module import BaseAgentModule
@@ -14,6 +14,7 @@ class ModularAgentFramework(Generic[StateT]):
     def __init__(self, state_class: type[StateT], config: Optional[FrameworkConfig] = None):
         self.state_class = state_class
         self.modules: Dict[str, BaseAgentModule[StateT]] = {}
+        self.module_configs: Dict[str, Optional[Dict[str, Any]]] = {}
         self.execution_order: List[str] = []
         self.config = config or FrameworkConfig()
         self._graph = None 
@@ -67,12 +68,14 @@ class ModularAgentFramework(Generic[StateT]):
 
         self.execution_order = ordered
 
-    def register_module(self, module: type[StateT]):
-        """Register a migration module"""
+    def register_module(self, module: BaseAgentModule[StateT], config: Optional[Dict[str, Any]] = None):
+        """Register a module with optional configuration"""
 
         module.log_loading()
 
         self.modules[module.module_name] = module
+        self.module_configs[module.module_name] = config
+        
         # Only validate dependencies when building execution order, not during registration
         try:
             self._update_execution_order()
@@ -93,7 +96,8 @@ class ModularAgentFramework(Generic[StateT]):
 
         for module_name in self.execution_order:
             module = self.modules[module_name]
-            entry_node, exit_node = module.add_nodes_to_graph(main_graph)
+            module_config = self.module_configs.get(module_name)
+            entry_node, exit_node = module.add_nodes_to_graph(main_graph, config=module_config)
             module_endpoints[module_name] = {"entry": entry_node, "exit": exit_node}
 
         if self.execution_order:
